@@ -2,8 +2,8 @@
   "name": "pokemon",
   "version": "1.0.0",
   "scripts": {
-    "start": "nodemon server.js",
-    "dev": "webpack serve --mode development",
+    "start": "nodemon server/server.js",
+    "dev": "webpack serve --mode development --port 9000",
     "build": "webpack --mode production"
   },
   "dependencies": {

@@ -5,6 +5,7 @@
  */
 import Phaser from "phaser";
 import { io } from "socket.io-client";
+import Player from "./entities/Player";
 
 class Game extends Phaser.Scene {
   constructor() {
@@ -17,6 +18,7 @@ class Game extends Phaser.Scene {
     this.enterKey = null;
     this.dialog = false;
     this.socket = null;
+    this.socketManager = null;
     this.otherPlayers = {};
     this.npc = null;
     this.interactKey = null;
@@ -68,27 +70,17 @@ class Game extends Phaser.Scene {
       (obj) => obj.name === "Spawn Point"
     );
 
-    // Create a sprite with physics enabled via the physics system. The image used for the sprite has
-    // a bit of whitespace, so I'm using setSize & setOffset to control the size of the player's body.
-    this.player = this.physics.add
-      .sprite(spawnPoint.x, spawnPoint.y, "atlas", "misa-front")
-      .setSize(30, 40)
-      .setOffset(0, 24);
+    this.player = new Player(this, spawnPoint.x, spawnPoint.y);
 
     // Set up world bounds
     this.physics.world.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
 
-    this.player.setCollideWorldBounds(true); // Prevent sliding off screen
-    this.player.body.setMaxVelocity(175); // Limit maximum velocity
-
-    // Watch the player and worldLayer for collisions, for the duration of the scene:
-    this.physics.add.collider(this.player, worldLayer);
-
     // Create a physics group for other players
     this.otherPlayersGroup = this.physics.add.group();
 
+    // Watch the player and worldLayer for collisions, for the duration of the scene
     // Add collision between the player and the other players group
-    this.physics.add.collider(this.player, this.otherPlayersGroup);
+    this.player.addCollider([worldLayer, this.otherPlayersGroup]);
 
     // Create NPC
     const npcSpawnPoint = map.findObject(
@@ -101,64 +93,17 @@ class Game extends Phaser.Scene {
       .setOffset(0, 24)
       .setImmovable(true);
 
-    this.physics.add.collider(this.player, this.npc);
+    this.physics.add.collider(this.player.sprite, this.npc);
     // Create interaction key
     this.interactKey = this.input.keyboard.addKey(
       Phaser.Input.Keyboard.KeyCodes.E
     );
 
-    // Create the player's walking animations from the texture atlas. These are stored in the global
-    // animation manager so any sprite can access them.
-    const anims = this.anims;
-    anims.create({
-      key: "misa-left-walk",
-      frames: anims.generateFrameNames("atlas", {
-        prefix: "misa-left-walk.",
-        start: 0,
-        end: 3,
-        zeroPad: 3,
-      }),
-      frameRate: 10,
-      repeat: -1,
-    });
-    anims.create({
-      key: "misa-right-walk",
-      frames: anims.generateFrameNames("atlas", {
-        prefix: "misa-right-walk.",
-        start: 0,
-        end: 3,
-        zeroPad: 3,
-      }),
-      frameRate: 10,
-      repeat: -1,
-    });
-    anims.create({
-      key: "misa-front-walk",
-      frames: anims.generateFrameNames("atlas", {
-        prefix: "misa-front-walk.",
-        start: 0,
-        end: 3,
-        zeroPad: 3,
-      }),
-      frameRate: 10,
-      repeat: -1,
-    });
-    anims.create({
-      key: "misa-back-walk",
-      frames: anims.generateFrameNames("atlas", {
-        prefix: "misa-back-walk.",
-        start: 0,
-        end: 3,
-        zeroPad: 3,
-      }),
-      frameRate: 10,
-      repeat: -1,
-    });
-
     const camera = this.cameras.main;
-    camera.startFollow(this.player);
+    camera.startFollow(this.player.sprite);
     camera.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
 
+    // Create cursor keys
     this.cursors = this.input.keyboard.createCursorKeys();
 
     // Help text that has a "fixed" position on the screen
@@ -173,7 +118,10 @@ class Game extends Phaser.Scene {
       .setDepth(30);
 
     // Send new player to server
-    this.socket.emit("new player", { x: this.player.x, y: this.player.y });
+    this.socket.emit("new player", {
+      x: this.player.sprite.x,
+      y: this.player.sprite.y,
+    });
 
     // Handle current players
     this.socket.on("current players", (players) => {
@@ -258,16 +206,16 @@ class Game extends Phaser.Scene {
   }
 
   update(time, delta) {
-    if (!this.player) return;
+    if (!this.player.sprite) return;
 
     // Stop any previous movement from the last frame
-    this.player.body.setVelocity(0);
+    this.player.sprite.body.setVelocity(0);
 
     // Check for interaction with NPC
     if (Phaser.Input.Keyboard.JustDown(this.interactKey)) {
       const distance = Phaser.Math.Distance.Between(
-        this.player.x,
-        this.player.y,
+        this.player.sprite.x,
+        this.player.sprite.y,
         this.npc.x,
         this.npc.y
       );
@@ -328,7 +276,7 @@ class Game extends Phaser.Scene {
     this.dialog = true;
 
     // Optionally, disable player movement here
-    this.player.body.moves = false;
+    this.player.sprite.body.moves = false;
   }
 
   hideDialog() {
@@ -337,7 +285,7 @@ class Game extends Phaser.Scene {
     this.dialog = false;
 
     // Optionally, re-enable player movement here
-    this.player.body.moves = true;
+    this.player.sprite.body.moves = true;
   }
 
   addOtherPlayer(playerInfo) {
@@ -361,6 +309,30 @@ class Game extends Phaser.Scene {
     this.updatePlayerAnimation(otherPlayer, otherPlayer.direction, false);
   }
 
+  updateOtherPlayer(playerInfo) {
+    const otherPlayer = this.otherPlayers[playerInfo.playerId];
+    if (otherPlayer) {
+      otherPlayer.setPosition(playerInfo.x, playerInfo.y);
+      // Update animation based on direction
+      otherPlayer.anims.play(`misa-${playerInfo.direction}-walk`, true);
+    }
+  }
+
+  stopOtherPlayer(playerInfo) {
+    const otherPlayer = this.otherPlayers[playerInfo.playerId];
+    if (otherPlayer) {
+      otherPlayer.anims.stop();
+      otherPlayer.setTexture("atlas", `misa-${playerInfo.direction}`);
+    }
+  }
+
+  removeOtherPlayer(playerId) {
+    if (this.otherPlayers[playerId]) {
+      this.otherPlayers[playerId].destroy();
+      delete this.otherPlayers[playerId];
+    }
+  }
+
   updatePlayerAnimation(player, direction, isMoving) {
     if (isMoving && direction) {
       player.anims.play(`misa-${direction}-walk`, true);
@@ -371,65 +343,30 @@ class Game extends Phaser.Scene {
 
   updatePlayerMovement() {
     const speed = 135;
-    const prevVelocity = this.player.body.velocity.clone();
+    const prevVelocity = this.player.sprite.body.velocity.clone();
     // Stop any previous movement from the last frame
-    this.player.body.setVelocity(0);
+    this.player.sprite.body.setVelocity(0);
 
     // Normalize and scale the velocity so that player can't move faster along a diagonal
-    this.player.body.velocity.normalize().scale(speed);
+    this.player.sprite.body.velocity.normalize().scale(speed);
 
-    let isMoving;
-    let direction;
-    // Determine the direction
-    if (this.cursors.left.isDown) {
-      direction = "left";
-      isMoving = true;
-      this.player.body.setVelocityX(-speed);
-    } else if (this.cursors.right.isDown) {
-      direction = "right";
-      isMoving = true;
-      this.player.body.setVelocityX(speed);
-    } else if (this.cursors.down.isDown) {
-      direction = "front";
-      isMoving = true;
-      this.player.body.setVelocityY(speed);
-    } else if (this.cursors.up.isDown) {
-      direction = "back";
-      isMoving = true;
-      this.player.body.setVelocityY(-speed);
-    } else {
-      this.player.anims.stop();
+    const hasMoved = this.player.update(this.cursors);
+
+    if (hasMoved) {
+      console.log(hasMoved);
+      this.socket.emit("player movement", {
+        x: this.player.sprite.x,
+        y: this.player.sprite.y,
+        direction: this.player.direction,
+        isMoving: this.player.isMoving,
+      });
+    } else if (!this.player.isMoving) {
       this.socket.emit("player stopped", {
-        x: this.player.x,
-        y: this.player.y,
+        x: this.player.sprite.x,
+        y: this.player.sprite.y,
         direction: this.player.direction,
       });
     }
-
-    this.updatePlayerAnimation(this.player, direction, isMoving);
-
-    // Send player movement or stopped state to server
-    if (
-      this.player.oldPosition &&
-      (this.player.x !== this.player.oldPosition.x ||
-        this.player.y !== this.player.oldPosition.y ||
-        direction !== this.player.oldDirection)
-    ) {
-      this.socket.emit("player movement", {
-        x: this.player.x,
-        y: this.player.y,
-        direction: direction,
-        isMoving: isMoving,
-      });
-    }
-
-    // Save old position data and moving state
-    this.player.oldPosition = {
-      x: this.player.x,
-      y: this.player.y,
-    };
-    this.player.oldIsMoving = isMoving;
-    this.player.oldDirection = this.player.direction;
   }
 
   greetings() {
@@ -467,13 +404,13 @@ class Game extends Phaser.Scene {
     this.socket.emit("player greeting", { message });
 
     // Show greeting for the current player
-    this.showGreeting(this.player, message);
+    this.showGreeting(this.player.sprite, message);
 
     // Check if any other players are in range and show greeting for them locally
     Object.values(this.otherPlayers).forEach((otherPlayer) => {
       const distance = Phaser.Math.Distance.Between(
-        this.player.x,
-        this.player.y,
+        this.player.sprite.x,
+        this.player.sprite.y,
         otherPlayer.x,
         otherPlayer.y
       );

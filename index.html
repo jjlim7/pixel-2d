@@ -80,6 +80,12 @@
     <script src="//cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.js"></script>
     <script src="./index.js"></script>
     <script>
+        // Retrieve query parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const gameId = urlParams.get("gameId");
+
+        console.log("GameID: ", gameId);
+
         document.getElementById('start-game-button').addEventListener('click', function () {
             // Show loader and overlay
             document.getElementById('loader').style.display = 'block';

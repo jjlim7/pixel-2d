@@ -73,7 +73,12 @@ io.on("connection", (socket) => {
 
   // Handle player movement
   socket.on("player movement", (data) => {
-    if (!currentRoom || !rooms[currentRoom].players[socket.id]) return;
+    if (
+      !currentRoom ||
+      !rooms[currentRoom] ||
+      !rooms[currentRoom].players[socket.id]
+    )
+      return;
 
     const player = rooms[currentRoom].players[socket.id];
     player.x = data.x;
@@ -105,7 +110,12 @@ io.on("connection", (socket) => {
 
   // Handle player greeting
   socket.on("player greeting", (data) => {
-    if (!currentRoom || !rooms[currentRoom].players[socket.id]) return;
+    if (
+      !currentRoom ||
+      !rooms[currentRoom] ||
+      !rooms[currentRoom].players[socket.id]
+    )
+      return;
 
     const greetingPlayer = rooms[currentRoom].players[socket.id];
 

@@ -41,7 +41,7 @@ class Game extends Phaser.Scene {
       "../assets/atlas/atlas.json"
     );
 
-    this.socket = io("http://localhost:3000");
+    this.socket = io("http://13.228.120.122:3000");
   }
 
   create() {

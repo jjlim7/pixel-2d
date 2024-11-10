@@ -3,7 +3,7 @@ import io from "socket.io-client";
 export default class SocketManager {
   constructor(scene) {
     this.scene = scene;
-    this.socket = io("http://localhost:3000");
+    this.socket = io("http://0.0.0.0:3000");
     this.setupSocketListeners();
   }
 

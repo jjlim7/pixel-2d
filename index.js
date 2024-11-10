@@ -44,6 +44,7 @@ class Game extends Phaser.Scene {
       "default-room";
 
     this.socket.on("connect", () => {
+      console.log("connect: join room", this.gameId);
       this.socket.emit("join room", this.gameId);
     });
   }

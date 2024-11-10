@@ -14,10 +14,10 @@ const io = new Server(server, {
 const PORT = process.env.PORT || 3000;
 
 // Serve static files from the 'public' directory
-app.use(express.static("__dirname"));
+app.use(express.static(__dirname));
 
 // Store rooms and their players
-const rooms = {};
+let rooms = {};
 
 io.on("connection", (socket) => {
   console.log("A user connected:", socket.id);

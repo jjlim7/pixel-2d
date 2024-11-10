@@ -2,7 +2,7 @@
   "name": "pokemon",
   "version": "1.0.0",
   "scripts": {
-    "start": "nodemon server/server.js",
+    "start": "webpack --mode production && node server/server.js",
     "dev": "webpack serve --mode development --port 9000",
     "build": "webpack --mode production"
   },

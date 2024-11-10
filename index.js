@@ -41,7 +41,13 @@ class Game extends Phaser.Scene {
       "../assets/atlas/atlas.json"
     );
 
-    this.socket = io("http://localhost:3000");
+    this.socket = io("http://0.0.0.0:3000");
+
+    // Retrieve query parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const gameId = urlParams.get("gameId");
+
+    console.log("GameID: ", gameId);
   }
 
   create() {

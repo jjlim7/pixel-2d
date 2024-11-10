@@ -97,26 +97,7 @@
                 document.getElementById('overlay').style.display = 'none';
                 // Close the tab
                 window.close();
-            }, 3000);
-
-            // TODO: Add :9000 to CORS Origin Allowed List
-            // // Send API request to start the game
-            // fetch('http://0.0.0.0:8080/elo-ranking/api/simulate/battle-royale', { method: 'POST' })
-            //     .then(response => {
-            //         if (response.ok) {
-            //             // Wait for a few seconds
-            //             setTimeout(() => {
-            //                 // Close the tab
-            //                 window.close();
-            //             }, 3000); // Adjust the time as needed
-            //         } else {
-            //             // Handle error
-            //             console.error('Failed to start the game');
-            //         }
-            //     })
-            //     .catch(error => {
-            //         console.error('Error:', error);
-            //     });
+            }, 5000);
         });
     </script>
 </body>

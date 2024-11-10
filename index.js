@@ -1,8 +1,3 @@
-/**
- * Author: Michael Hadley, mikewesthad.com
- * Asset Credits:
- *  - Tuxemon, https://github.com/Tuxemon/Tuxemon
- */
 import Phaser from "phaser";
 import { io } from "socket.io-client";
 import Player from "./entities/Player";
@@ -22,6 +17,7 @@ class Game extends Phaser.Scene {
     this.otherPlayers = {};
     this.npc = null;
     this.interactKey = null;
+    this.gameId = null;
   }
 
   preload() {
@@ -41,7 +37,15 @@ class Game extends Phaser.Scene {
       "../assets/atlas/atlas.json"
     );
 
-    this.socket = io("http://13.228.120.122:3000");
+    this.socket = io("http://localhost:3000");
+
+    this.gameId =
+      new URLSearchParams(window.location.search).get("gameId") ||
+      "default-room";
+
+    this.socket.on("connect", () => {
+      this.socket.emit("join room", this.gameId);
+    });
   }
 
   create() {
@@ -117,7 +121,7 @@ class Game extends Phaser.Scene {
       .setScrollFactor(0)
       .setDepth(30);
 
-    // Send new player to server
+    // Send new player to server only after joining room
     this.socket.emit("new player", {
       x: this.player.sprite.x,
       y: this.player.sprite.y,
@@ -179,7 +183,9 @@ class Game extends Phaser.Scene {
             // );
 
             // Update the physics body position
-            otherPlayer.body.reset(playerInfo.x, playerInfo.y);
+            if (otherPlayer && otherPlayer.body) {
+              otherPlayer.body.reset(playerInfo.x, playerInfo.y);
+            }
           },
         });
       }
@@ -191,14 +197,20 @@ class Game extends Phaser.Scene {
       if (otherPlayer) {
         otherPlayer.setPosition(playerInfo.x, playerInfo.y);
         otherPlayer.body.reset(playerInfo.x, playerInfo.y);
-        this.updatePlayerAnimation(otherPlayer, playerInfo.direction, false);
+        this.updatePlayerAnimation(
+          otherPlayer,
+          playerInfo.direction || "front",
+          false
+        );
       }
     });
 
     // Handle player disconnection
     this.socket.on("player disconnected", (playerId) => {
-      this.otherPlayers[playerId].destroy();
-      delete this.otherPlayers[playerId];
+      if (this.otherPlayers[playerId]) {
+        this.otherPlayers[playerId].destroy();
+        delete this.otherPlayers[playerId];
+      }
     });
 
     this.initDialogBox(this);
@@ -334,6 +346,8 @@ class Game extends Phaser.Scene {
   }
 
   updatePlayerAnimation(player, direction, isMoving) {
+    if (!player || !player.anims) return; // Check if player and anims exist
+
     if (isMoving && direction) {
       player.anims.play(`misa-${direction}-walk`, true);
     } else {

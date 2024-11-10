@@ -86,7 +86,12 @@ io.on("connection", (socket) => {
 
   // Handle player stopped
   socket.on("player stopped", (data) => {
-    if (!currentRoom || !rooms[currentRoom].players[socket.id]) return;
+    if (
+      !currentRoom ||
+      !rooms[currentRoom] ||
+      !rooms[currentRoom].players[socket.id]
+    )
+      return;
 
     const player = rooms[currentRoom].players[socket.id];
     player.x = data.x;

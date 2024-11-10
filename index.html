@@ -19,21 +19,100 @@
             min-width: 100vw;
             min-height: 100vh;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
+            background-color: rgba(0, 0, 0, 0.9);
+            position: relative;
+            gap: 20px;
         }
 
         #game-container>canvas {
             border-radius: 5px;
         }
+
+        #start-game-button {
+            padding: 12px 24px;
+            background-color: #ff8c00;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+            z-index: 1000;
+            order: -1;
+        }
+
+        #start-game-button:hover {
+            background-color: #ff7000;
+        }
+
+        #loader {
+            position: absolute;
+            top: calc(50% - 60px);
+            z-index: 1001;
+            display: none;
+        }
+
+        #overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: rgba(46, 46, 46, 0.7);
+            z-index: 1000;
+            display: none;
+        }
     </style>
 </head>
 
 <body>
-    <div id="game-container"></div>
+    <div id="game-container">
+        <button id="start-game-button">Start Game</button>
+        <div id="overlay"></div>
+        <div id="loader">
+            <img src="assets/loader.gif" alt="Loading..." />
+        </div>
+    </div>
 
     <script src="//cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.js"></script>
     <script src="./index.js"></script>
+    <script>
+        document.getElementById('start-game-button').addEventListener('click', function () {
+            // Show loader and overlay
+            document.getElementById('loader').style.display = 'block';
+            document.getElementById('overlay').style.display = 'block';
+
+            setTimeout(() => {
+                // Hide loader and overlay
+                document.getElementById('loader').style.display = 'none';
+                document.getElementById('overlay').style.display = 'none';
+                // Close the tab
+                window.close();
+            }, 3000);
+
+            // TODO: Add :9000 to CORS Origin Allowed List
+            // // Send API request to start the game
+            // fetch('http://0.0.0.0:8080/elo-ranking/api/simulate/battle-royale', { method: 'POST' })
+            //     .then(response => {
+            //         if (response.ok) {
+            //             // Wait for a few seconds
+            //             setTimeout(() => {
+            //                 // Close the tab
+            //                 window.close();
+            //             }, 3000); // Adjust the time as needed
+            //         } else {
+            //             // Handle error
+            //             console.error('Failed to start the game');
+            //         }
+            //     })
+            //     .catch(error => {
+            //         console.error('Error:', error);
+            //     });
+        });
+    </script>
 </body>
 
 </html>

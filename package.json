@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "scripts": {
     "heroku-prebuild": "npm install --dev",
-    "start": "webpack --mode production",
+    "start": "webpack serve --mode development",
     "dev": "webpack serve --mode development --port 9000",
     "build": "webpack --mode production"
   },
